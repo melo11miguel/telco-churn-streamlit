@@ -4,7 +4,7 @@ Construimos una solución completa de Machine Learning que estima la probabilida
 
 **Objetivo de negocio:** identificar a tiempo a los clientes con alto riesgo de irse para priorizarlos en una campaña de retención.
 
-**Autores:** Miguel Melo y [NOMBRE DE LA PAREJA]
+**Autores:** Miguel Melo y David Castro
 
 ## Ruta elegida
 
