@@ -10,4 +10,6 @@ __pycache__
 .DS_Store
 colab/
 tests/
+web/
+export_web.py
 requirements-dev.txt

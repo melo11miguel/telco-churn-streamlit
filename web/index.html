@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Radar de Fuga Telco</title>
+  <meta name="description" content="Estime el riesgo de que un cliente de telecomunicaciones cancele su servicio y entienda qué factores lo explican.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232a78d6'/%3E%3Cpath d='M8 21l5-6 4 4 7-9' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    // Aplica el tema elegido antes de pintar, para evitar un parpadeo.
+    try {
+      var t = new URLSearchParams(location.search).get("theme") || localStorage.getItem("theme");
+      if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="#">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M8 21l5-6 4 4 7-9" /></svg>
+        </span>
+        <span class="brand-text">
+          <strong>Radar de Fuga</strong>
+          <small>Clientes de telecomunicaciones</small>
+        </span>
+      </a>
+      <nav class="topnav" aria-label="Secciones">
+        <a href="#simulador">Simulador</a>
+        <a href="#confiabilidad">Confiabilidad</a>
+        <a href="#como-funciona">Cómo funciona</a>
+        <button type="button" class="theme-btn" id="theme-toggle" aria-label="Cambiar tema">
+          <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+          <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero wrap">
+      <p class="eyebrow">Modelo de riesgo de cancelación</p>
+      <h1>¿Qué tan probable es que este cliente se vaya?</h1>
+      <p class="lead">
+        Describa al cliente y el modelo calcula al instante su puntaje de riesgo,
+        le muestra qué factores pesan más y qué cambios podrían retenerlo.
+      </p>
+      <div class="presets" role="group" aria-label="Cargar un ejemplo">
+        <span class="presets-label">Probar con un ejemplo:</span>
+        <button type="button" class="chip-btn" data-preset="tipico">Cliente típico</button>
+        <button type="button" class="chip-btn" data-preset="alto">Cliente nuevo, alto riesgo</button>
+        <button type="button" class="chip-btn" data-preset="bajo">Cliente fiel, bajo riesgo</button>
+      </div>
+    </section>
+
+    <section id="simulador" class="wrap layout">
+      <form id="form" class="form" novalidate>
+        <fieldset class="card">
+          <legend class="card-title"><span class="step">1</span> Cuenta</legend>
+          <div class="range-field">
+            <div class="range-head">
+              <label for="tenure">Antigüedad</label>
+              <span class="range-value"><input type="number" id="tenure-num" aria-label="Antigüedad en meses" inputmode="numeric"> meses</span>
+            </div>
+            <input type="range" id="tenure" name="tenure" step="1">
+            <p class="hint">Cuántos meses lleva el cliente con la compañía.</p>
+          </div>
+          <div class="range-field">
+            <div class="range-head">
+              <label for="MonthlyCharges">Cargo mensual</label>
+              <span class="range-value">US$ <input type="number" id="MonthlyCharges-num" aria-label="Cargo mensual en dólares" inputmode="decimal" step="0.05"></span>
+            </div>
+            <input type="range" id="MonthlyCharges" name="MonthlyCharges" step="0.05">
+            <p class="hint">Lo que paga hoy cada mes por todos sus servicios.</p>
+          </div>
+        </fieldset>
+
+        <fieldset class="card">
+          <legend class="card-title"><span class="step">2</span> Contrato y pago</legend>
+          <div class="field" data-field="Contract"></div>
+          <div class="field" data-field="PaymentMethod"></div>
+          <div class="field" data-field="PaperlessBilling"></div>
+        </fieldset>
+
+        <fieldset class="card">
+          <legend class="card-title"><span class="step">3</span> Servicios contratados</legend>
+          <div class="field-row">
+            <div class="field" data-field="PhoneService"></div>
+            <div class="field" data-field="MultipleLines"></div>
+          </div>
+          <div class="field" data-field="InternetService"></div>
+          <p class="subhead">Servicios de internet adicionales</p>
+          <div class="toggles" id="addons"></div>
+        </fieldset>
+
+        <fieldset class="card">
+          <legend class="card-title"><span class="step">4</span> Perfil del cliente</legend>
+          <div class="field-row three">
+            <div class="field" data-field="SeniorCitizen"></div>
+            <div class="field" data-field="Partner"></div>
+            <div class="field" data-field="Dependents"></div>
+          </div>
+        </fieldset>
+      </form>
+
+      <aside class="result-col" id="resultado" aria-label="Resultado">
+        <div class="card result" aria-live="polite">
+          <p class="result-label">Puntaje de riesgo de fuga</p>
+          <div class="score-row">
+            <span class="score" id="score">0</span>
+            <span class="score-max">/100</span>
+            <span class="badge" id="badge"></span>
+          </div>
+
+          <div class="meter" aria-hidden="true">
+            <div class="meter-track">
+              <span class="zone zone-low"></span>
+              <span class="zone zone-mid"></span>
+              <span class="zone zone-high"></span>
+              <span class="meter-marker" id="marker"></span>
+            </div>
+            <div class="meter-scale">
+              <span style="left:0">0</span>
+              <span style="left:30%">30</span>
+              <span style="left:50%">50</span>
+              <span style="left:100%">100</span>
+            </div>
+            <div class="meter-legend">
+              <span>Bajo</span><span>Medio</span><span>Alto: se prevé que se vaya</span>
+            </div>
+          </div>
+
+          <p class="reality" id="reality"></p>
+
+          <div class="block">
+            <h2 class="block-title">Qué explica este puntaje</h2>
+            <p class="block-sub">Comparado con el cliente promedio. Rojo sube el riesgo, azul lo baja.</p>
+            <ul class="drivers" id="drivers"></ul>
+          </div>
+
+          <div class="block">
+            <h2 class="block-title">Qué podría retenerlo</h2>
+            <p class="block-sub">Simulaciones del modelo cambiando una sola cosa. Son asociaciones, no efectos garantizados.</p>
+            <ul class="actions" id="actions"></ul>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section id="confiabilidad" class="wrap section">
+      <div class="section-head">
+        <p class="eyebrow">Confiabilidad</p>
+        <h2>¿Qué tan bien funciona el modelo?</h2>
+        <p class="lead small">
+          Lo evaluamos con <strong id="n-test">1.409</strong> clientes que el modelo nunca vio durante el entrenamiento.
+        </p>
+      </div>
+
+      <div class="stats" id="stats"></div>
+
+      <div class="card chart-card">
+        <div class="chart-head">
+          <div>
+            <h3>Puntaje frente a fuga real</h3>
+            <p class="block-sub">Porcentaje de clientes de prueba que realmente se fue, según su puntaje.</p>
+          </div>
+          <button type="button" class="link-btn" id="toggle-table" aria-expanded="false">Ver tabla</button>
+        </div>
+        <div class="calib" id="calib" role="img" aria-label="Gráfico de barras: fuga real por tramo de puntaje"></div>
+        <div class="tooltip" id="tooltip" role="status" hidden></div>
+        <div class="table-wrap" id="calib-table" hidden></div>
+        <p class="note">
+          <strong>Cómo leer el puntaje.</strong> El modelo se entrenó dando más peso a los clientes que se van, para no dejarlos pasar.
+          Por eso el puntaje sirve para <em>ordenar</em> clientes por riesgo, pero exagera la probabilidad literal: por ejemplo,
+          de los clientes con puntaje entre 70 y 80, en realidad se fue cerca de la mitad. La frase bajo el puntaje usa siempre
+          esta tasa real.
+        </p>
+      </div>
+    </section>
+
+    <section id="como-funciona" class="wrap section">
+      <div class="section-head">
+        <p class="eyebrow">Cómo funciona</p>
+        <h2>Del dato a la decisión</h2>
+      </div>
+      <ol class="steps">
+        <li class="card">
+          <span class="step">1</span>
+          <h3>Datos reales</h3>
+          <p>7.043 clientes de una compañía de telecomunicaciones (IBM Telco Customer Churn). El 26,5 % canceló su servicio.</p>
+        </li>
+        <li class="card">
+          <span class="step">2</span>
+          <h3>Modelo simple y explicable</h3>
+          <p>Una regresión logística con 17 variables. La comparamos con un random forest: rindieron igual, así que nos quedamos con la más simple y fácil de explicar.</p>
+        </li>
+        <li class="card">
+          <span class="step">3</span>
+          <h3>Cálculo en su navegador</h3>
+          <p>El puntaje se calcula aquí mismo con los coeficientes del modelo entrenado. Ningún dato que ingrese sale de su equipo.</p>
+        </li>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <p>Proyecto académico de Miguel Melo y David Castro.</p>
+      <p>Datos: IBM Telco Customer Churn. Modelo entrenado con scikit-learn <span id="sk-version"></span>.</p>
+    </div>
+  </footer>
+
+  <a class="mobile-bar" id="mobile-bar" href="#resultado">
+    <span>Riesgo</span>
+    <strong id="mobile-score">0</strong>
+    <span class="badge small" id="mobile-badge"></span>
+    <span class="mobile-cta">Ver detalle</span>
+  </a>
+
+  <script src="churn-model.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

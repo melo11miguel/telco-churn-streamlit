@@ -1,0 +1,414 @@
+{
+ "model_name": "Regresión logística",
+ "sklearn_version": "1.9.1",
+ "intercept": -0.2809496778304795,
+ "numeric": [
+  {
+   "name": "tenure",
+   "impute": 29.0,
+   "mean": 32.48509052183174,
+   "scale": 24.56656301538815,
+   "coef": -0.7528648709337361,
+   "train_mean": -8.315834511746824e-17,
+   "min": 0.0,
+   "max": 72.0,
+   "median": 29.0
+  },
+  {
+   "name": "MonthlyCharges",
+   "impute": 70.5,
+   "mean": 64.92996095136671,
+   "scale": 30.135430576006627,
+   "coef": -0.5708277870161149,
+   "train_mean": -2.4108037776471716e-16,
+   "min": 18.25,
+   "max": 118.75,
+   "median": 70.35
+  }
+ ],
+ "categorical": [
+  {
+   "name": "SeniorCitizen",
+   "impute": "No",
+   "levels": [
+    "No",
+    "Yes"
+   ],
+   "coef": [
+    -0.16481252695322013,
+    -0.015161788943352355
+   ],
+   "train_mean": [
+    0.8367057152999645,
+    0.16329428470003549
+   ],
+   "default": "No"
+  },
+  {
+   "name": "Partner",
+   "impute": "No",
+   "levels": [
+    "No",
+    "Yes"
+   ],
+   "coef": [
+    -0.09833071235816433,
+    -0.08164360353842348
+   ],
+   "train_mean": [
+    0.5156194533191338,
+    0.48438054668086616
+   ],
+   "default": "No"
+  },
+  {
+   "name": "Dependents",
+   "impute": "No",
+   "levels": [
+    "No",
+    "Yes"
+   ],
+   "coef": [
+    0.029979190857389416,
+    -0.2099535067539651
+   ],
+   "train_mean": [
+    0.7019879304224352,
+    0.29801206957756476
+   ],
+   "default": "No"
+  },
+  {
+   "name": "PhoneService",
+   "impute": "Yes",
+   "levels": [
+    "No",
+    "Yes"
+   ],
+   "coef": [
+    -0.12149908638161849,
+    -0.05847522951496397
+   ],
+   "train_mean": [
+    0.09921902733404331,
+    0.9007809726659567
+   ],
+   "default": "Yes"
+  },
+  {
+   "name": "MultipleLines",
+   "impute": "No",
+   "levels": [
+    "No",
+    "No phone service",
+    "Yes"
+   ],
+   "coef": [
+    -0.21600818177873857,
+    -0.12149908638161849,
+    0.15753295226376418
+   ],
+   "train_mean": [
+    0.47657082002129925,
+    0.09921902733404331,
+    0.42421015264465745
+   ],
+   "default": "No"
+  },
+  {
+   "name": "InternetService",
+   "impute": "Fiber optic",
+   "levels": [
+    "DSL",
+    "Fiber optic",
+    "No"
+   ],
+   "coef": [
+    -0.6389034259261582,
+    0.7338361533318039,
+    -0.27490704330224003
+   ],
+   "train_mean": [
+    0.3438054668086617,
+    0.44071707490237844,
+    0.2154774582889599
+   ],
+   "default": "Fiber optic"
+  },
+  {
+   "name": "OnlineSecurity",
+   "impute": "No",
+   "levels": [
+    "No",
+    "No internet service",
+    "Yes"
+   ],
+   "coef": [
+    0.19606215435941388,
+    -0.27490704330224003,
+    -0.10112942695373553
+   ],
+   "train_mean": [
+    0.4964501242456514,
+    0.2154774582889599,
+    0.2880724174653887
+   ],
+   "default": "No"
+  },
+  {
+   "name": "OnlineBackup",
+   "impute": "No",
+   "levels": [
+    "No",
+    "No internet service",
+    "Yes"
+   ],
+   "coef": [
+    0.05789718521002168,
+    -0.27490704330224003,
+    0.03703554219563801
+   ],
+   "train_mean": [
+    0.4334398296059638,
+    0.2154774582889599,
+    0.3510827121050763
+   ],
+   "default": "No"
+  },
+  {
+   "name": "DeviceProtection",
+   "impute": "No",
+   "levels": [
+    "No",
+    "No internet service",
+    "Yes"
+   ],
+   "coef": [
+    0.002346922671589308,
+    -0.27490704330224003,
+    0.09258580473407096
+   ],
+   "train_mean": [
+    0.4387646432374867,
+    0.2154774582889599,
+    0.3457578984735534
+   ],
+   "default": "No"
+  },
+  {
+   "name": "TechSupport",
+   "impute": "No",
+   "levels": [
+    "No",
+    "No internet service",
+    "Yes"
+   ],
+   "coef": [
+    0.15971593604388667,
+    -0.27490704330224003,
+    -0.06478320863821901
+   ],
+   "train_mean": [
+    0.49183528576499824,
+    0.2154774582889599,
+    0.2926872559460419
+   ],
+   "default": "No"
+  },
+  {
+   "name": "StreamingTV",
+   "impute": "No",
+   "levels": [
+    "No",
+    "No internet service",
+    "Yes"
+   ],
+   "coef": [
+    -0.18858983952027747,
+    -0.27490704330224003,
+    0.283522566925949
+   ],
+   "train_mean": [
+    0.3951011714589989,
+    0.2154774582889599,
+    0.38942137025204115
+   ],
+   "default": "No"
+  },
+  {
+   "name": "StreamingMovies",
+   "impute": "No",
+   "levels": [
+    "No",
+    "No internet service",
+    "Yes"
+   ],
+   "coef": [
+    -0.19914800028222165,
+    -0.27490704330224003,
+    0.29408072768787213
+   ],
+   "train_mean": [
+    0.3935037273695421,
+    0.2154774582889599,
+    0.39101881434149804
+   ],
+   "default": "No"
+  },
+  {
+   "name": "Contract",
+   "impute": "Month-to-month",
+   "levels": [
+    "Month-to-month",
+    "One year",
+    "Two year"
+   ],
+   "coef": [
+    0.6599269508228269,
+    -0.07147054224624022,
+    -0.7684307244731564
+   ],
+   "train_mean": [
+    0.5505857294994675,
+    0.20820021299254526,
+    0.24121405750798722
+   ],
+   "default": "Month-to-month"
+  },
+  {
+   "name": "PaperlessBilling",
+   "impute": "Yes",
+   "levels": [
+    "No",
+    "Yes"
+   ],
+   "coef": [
+    -0.2557800906465365,
+    0.07580577474995345
+   ],
+   "train_mean": [
+    0.40876819311324103,
+    0.5912318068867589
+   ],
+   "default": "Yes"
+  },
+  {
+   "name": "PaymentMethod",
+   "impute": "Electronic check",
+   "levels": [
+    "Bank transfer (automatic)",
+    "Credit card (automatic)",
+    "Electronic check",
+    "Mailed check"
+   ],
+   "coef": [
+    -0.16802318997710375,
+    -0.1677713316455642,
+    0.23382954818664511,
+    -0.07800934246054726
+   ],
+   "train_mean": [
+    0.2208022719204828,
+    0.21529996450124245,
+    0.33564075257365994,
+    0.22825701100461485
+   ],
+   "default": "Electronic check"
+  }
+ ],
+ "metrics": {
+  "model_name": "Regresión logística",
+  "n_train": 5634,
+  "n_test": 1409,
+  "churn_rate": 0.2653698707936959,
+  "cv_f1": {
+   "Regresión logística": {
+    "f1_mean": 0.6279863361157315,
+    "f1_std": 0.0217773623468504
+   },
+   "Random forest": {
+    "f1_mean": 0.6306483196739878,
+    "f1_std": 0.012619522827377683
+   }
+  },
+  "test": {
+   "f1_churn": 0.6165254237288136,
+   "recall_churn": 0.7780748663101604,
+   "precision_churn": 0.5105263157894737,
+   "roc_auc": 0.8389030974708724,
+   "accuracy": 0.7430801987224982,
+   "confusion_matrix": [
+    [
+     756,
+     279
+    ],
+    [
+     83,
+     291
+    ]
+   ]
+  }
+ },
+ "calibration": [
+  {
+   "from": 0.0,
+   "to": 0.1,
+   "n": 311,
+   "churned": 3
+  },
+  {
+   "from": 0.1,
+   "to": 0.2,
+   "n": 177,
+   "churned": 13
+  },
+  {
+   "from": 0.2,
+   "to": 0.3,
+   "n": 114,
+   "churned": 10
+  },
+  {
+   "from": 0.3,
+   "to": 0.4,
+   "n": 121,
+   "churned": 27
+  },
+  {
+   "from": 0.4,
+   "to": 0.5,
+   "n": 116,
+   "churned": 30
+  },
+  {
+   "from": 0.5,
+   "to": 0.6,
+   "n": 90,
+   "churned": 29
+  },
+  {
+   "from": 0.6,
+   "to": 0.7,
+   "n": 116,
+   "churned": 40
+  },
+  {
+   "from": 0.7,
+   "to": 0.8,
+   "n": 149,
+   "churned": 70
+  },
+  {
+   "from": 0.8,
+   "to": 0.9,
+   "n": 185,
+   "churned": 130
+  },
+  {
+   "from": 0.9,
+   "to": 1.0,
+   "n": 30,
+   "churned": 22
+  }
+ ]
+}

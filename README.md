@@ -88,6 +88,8 @@ La app muestra:
 - **Clase predicha:** "Se va" si la probabilidad de fuga es de 50 % o más, y "Se queda" en otro caso.
 - **Probabilidad de fuga:** la estimación del modelo para un cliente con ese perfil. Sirve para ordenar a los clientes por riesgo, no como certeza individual.
 
+**Ojo con la escala.** Como entrenamos con `class_weight="balanced"`, el modelo da más peso a los clientes que se van y sus probabilidades salen infladas: el promedio predicho es 41,5 % cuando la tasa real es 26,5 %. En los clientes de prueba con probabilidad entre 70 % y 80 %, en realidad se fue el 47 %. El orden sí es confiable (ROC-AUC 0,839), así que la usamos para priorizar clientes. La versión web presenta el número como "puntaje de riesgo" y al lado muestra la tasa real de fuga observada para ese tramo.
+
 La app solo ofrece combinaciones que existen en los datos. Si el cliente no tiene teléfono, "Varias líneas" queda fijo en "Sin servicio telefónico". Si no tiene internet, los seis servicios de internet quedan fijos en "Sin servicio de internet". Los valores por defecto del formulario son los más frecuentes del dataset.
 
 ## Estructura del proyecto
@@ -96,6 +98,7 @@ La app solo ofrece combinaciones que existen en los datos. Si el cliente no tien
 telco-churn-streamlit/
 ├── app.py                  # interfaz Streamlit (solo carga el modelo)
 ├── train.py                # entrenamiento reproducible
+├── export_web.py           # exporta el modelo a web/model.json
 ├── model.joblib            # pipeline entrenado + metadatos para la app
 ├── metrics.json            # métricas de la última ejecución de train.py
 ├── requirements.txt        # dependencias con versiones fijas
@@ -105,7 +108,16 @@ telco-churn-streamlit/
 ├── data/
 │   └── telco_churn.csv
 ├── tests/
-│   └── test_app.py         # pruebas de la app con streamlit.testing
+│   ├── test_app.py         # pruebas de la app con streamlit.testing
+│   ├── test_web_export.py  # web/model.json coincide con model.joblib
+│   ├── check_web.mjs       # la web da la misma probabilidad que sklearn
+│   └── web_cases.json      # 300 casos de verificación
+├── web/                    # versión web estática (Vercel)
+│   ├── index.html
+│   ├── styles.css
+│   ├── app.js
+│   ├── churn-model.js      # inferencia en JavaScript
+│   └── model.json          # coeficientes exportados
 └── colab/
     └── telco_churn_colab.ipynb   # revisión del dataset y pruebas en Colab
 ```
@@ -235,6 +247,31 @@ docker run -d --name ml-streamlit --restart unless-stopped -p 8501:8501 ml-strea
 | El contenedor se detiene | `docker ps -a` y `docker logs ml-streamlit`. |
 | Funciona en la VM pero no desde fuera | La regla de firewall, la etiqueta `streamlit-server` en la VM y la IP externa. Desde la VM, `curl localhost:8501/_stcore/health` debe responder `ok`. |
 | Los cambios no aparecen | Seguir los pasos de actualización de arriba. |
+
+## Versión web en Vercel
+
+Además de la app de Streamlit (la que pide la guía, con Docker en GCP), publicamos una versión web con un diseño pensado para alguien de negocio. Streamlit no puede correr en Vercel, porque necesita un servidor Python encendido todo el tiempo. Por eso aprovechamos que el modelo es una regresión logística: su predicción es una suma ponderada que el navegador calcula directamente con los coeficientes del pipeline entrenado. No hay servidor y ningún dato que se ingrese sale del equipo de quien usa la página.
+
+La página muestra:
+
+- **Puntaje de riesgo** de 0 a 100, con nivel bajo (menos de 30), medio (de 30 a 50) o alto (50 o más, el mismo umbral de la app de Streamlit).
+- **Tasa real de fuga** de los clientes de prueba con un puntaje parecido.
+- **Qué explica el puntaje:** los cinco factores que más lo suben o lo bajan frente al cliente promedio, en puntos.
+- **Qué podría retenerlo:** cuánto bajaría el puntaje al cambiar una sola cosa (contrato, forma de pago o servicios de soporte). Son asociaciones del modelo, no efectos causales.
+- **Confiabilidad:** métricas de prueba en lenguaje sencillo y el gráfico de puntaje frente a fuga real, con su tabla.
+
+Si reentrenamos el modelo, hay que regenerar y verificar la versión web:
+
+```bash
+python train.py
+python export_web.py
+python -m pytest -q          # incluye la prueba de que web/model.json está al día
+node tests/check_web.mjs     # la web y sklearn dan la misma probabilidad
+```
+
+`export_web.py` se niega a exportar si `train.py` llegara a elegir el random forest, porque la web solo reproduce la regresión logística. Para verla en local: `python -m http.server 8000 --directory web` y abrir http://localhost:8000.
+
+En Vercel el proyecto apunta a la carpeta `web/` como directorio raíz, sin paso de construcción. Cada push a `main` la vuelve a publicar.
 
 ## Ejemplo de entrada y salida
 
