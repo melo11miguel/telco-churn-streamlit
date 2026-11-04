@@ -1,0 +1,11 @@
+{
+  "name": "radar-fuga-telco",
+  "private": true,
+  "description": "Pruebas de la versión web del modelo de fuga de clientes",
+  "scripts": {
+    "test": "node tests/check_web.mjs && node tests/ui.test.cjs"
+  },
+  "devDependencies": {
+    "jsdom": "24.1.3"
+  }
+}

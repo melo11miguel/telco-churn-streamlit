@@ -1,6 +1,8 @@
 # Fuga de clientes Telco: del dataset al despliegue
 
-Construimos una solución completa de Machine Learning que estima la probabilidad de que un cliente de una compañía de telecomunicaciones cancele el servicio (churn). El proyecto cubre todo el ciclo: datos, entrenamiento reproducible con `train.py`, interfaz en Streamlit, imagen Docker y despliegue en una máquina virtual de Google Cloud.
+Construimos una solución completa de Machine Learning que estima el riesgo de que un cliente de una compañía de telecomunicaciones cancele el servicio (churn). El proyecto cubre todo el ciclo: datos, entrenamiento reproducible con `train.py`, una app web que usa el modelo entrenado, imagen Docker y despliegue.
+
+Con autorización del docente, reemplazamos la interfaz de Streamlit que propone la guía por una app web publicada en Vercel: **https://radar-fuga-telco.vercel.app**
 
 **Objetivo de negocio:** identificar a tiempo a los clientes con alto riesgo de irse para priorizarlos en una campaña de retención.
 
@@ -37,7 +39,7 @@ Excluimos tres columnas a propósito:
 
 ## Preparación de datos
 
-Todo el preprocesamiento vive dentro de un `Pipeline` de scikit-learn, así la app aplica exactamente las mismas transformaciones que el entrenamiento:
+Todo el preprocesamiento vive dentro de un `Pipeline` de scikit-learn, así las mismas transformaciones del entrenamiento se aplican a cualquier cliente nuevo:
 
 - **Numéricas:** imputación con la mediana y estandarización (`StandardScaler`).
 - **Categóricas:** imputación con la moda y codificación one-hot (`OneHotEncoder(handle_unknown="ignore")`).
@@ -54,7 +56,7 @@ Comparamos dos modelos con validación cruzada estratificada de 5 folds, usando 
 | Regresión logística | 0,628 ± 0,022 |
 | Random forest (300 árboles, `min_samples_leaf=5`) | 0,631 ± 0,013 |
 
-El random forest gana por 0,003, una diferencia mucho menor que la variación entre folds. Por eso aplicamos una regla de parsimonia: si el modelo más simple queda a menos de una desviación estándar del mejor, nos quedamos con el simple. **Elegimos la regresión logística**: rinde igual, se interpreta directamente con sus coeficientes y el artefacto pesa 10 KB en lugar de 16 MB.
+El random forest gana por 0,003, una diferencia mucho menor que la variación entre folds. Por eso aplicamos una regla de parsimonia: si el modelo más simple queda a menos de una desviación estándar del mejor, nos quedamos con el simple. **Elegimos la regresión logística**: rinde igual, se interpreta directamente con sus coeficientes, el artefacto pesa 10 KB en lugar de 16 MB y, como su predicción es una suma ponderada, la app web la puede calcular exactamente en el navegador.
 
 ## Métricas y evaluación
 
@@ -81,45 +83,53 @@ Matriz de confusión (filas: real, columnas: predicho):
 
 Las métricas exactas quedan en `metrics.json` cada vez que se ejecuta `train.py`.
 
-## Interpretación de la salida
+## La app web
 
-La app muestra:
+Streamlit necesita un servidor Python encendido todo el tiempo, y Vercel no lo ofrece. Por eso aprovechamos que el modelo es una regresión logística: `export_web.py` toma el pipeline entrenado de `model.joblib` y guarda en `web/model.json` las medianas y modas de imputación, la media y escala de cada numérica, las categorías del one-hot, los coeficientes y el intercepto. `web/churn-model.js` repite esas mismas operaciones en el navegador y aplica la sigmoide. El resultado es idéntico al de `model.predict_proba` (lo verificamos en 300 casos, ver Pruebas), no hay servidor y ningún dato que se ingrese sale del equipo de quien usa la página.
 
-- **Clase predicha:** "Se va" si la probabilidad de fuga es de 50 % o más, y "Se queda" en otro caso.
-- **Probabilidad de fuga:** la estimación del modelo para un cliente con ese perfil. Sirve para ordenar a los clientes por riesgo, no como certeza individual.
+La app no vuelve a entrenar: solo lee `model.json`.
 
-**Ojo con la escala.** Como entrenamos con `class_weight="balanced"`, el modelo da más peso a los clientes que se van y sus probabilidades salen infladas: el promedio predicho es 41,5 % cuando la tasa real es 26,5 %. En los clientes de prueba con probabilidad entre 70 % y 80 %, en realidad se fue el 47 %. El orden sí es confiable (ROC-AUC 0,839), así que la usamos para priorizar clientes. La versión web presenta el número como "puntaje de riesgo" y al lado muestra la tasa real de fuga observada para ese tramo.
+### Interpretación de la salida
 
-La app solo ofrece combinaciones que existen en los datos. Si el cliente no tiene teléfono, "Varias líneas" queda fijo en "Sin servicio telefónico". Si no tiene internet, los seis servicios de internet quedan fijos en "Sin servicio de internet". Los valores por defecto del formulario son los más frecuentes del dataset.
+- **Puntaje de riesgo** de 0 a 100: la salida del modelo multiplicada por 100.
+- **Nivel:** bajo (menos de 30), medio (de 30 a 50) o alto (50 o más). Con 50 o más, la app dice "Se prevé que se vaya", que es la clase positiva del modelo con el umbral de 0,5.
+- **Tasa real de fuga:** cuántos de los clientes de prueba con un puntaje parecido se fueron de verdad.
+- **Qué explica el puntaje:** los cinco factores que más lo suben (rojo) o lo bajan (azul) frente al cliente promedio de entrenamiento, en puntos.
+- **Qué podría retenerlo:** cuánto bajaría el puntaje al cambiar una sola cosa (contrato, forma de pago o servicios de soporte). Son asociaciones del modelo, no efectos causales garantizados.
+- **Confiabilidad:** las métricas de prueba en lenguaje sencillo y el gráfico de puntaje frente a fuga real, con su tabla.
+
+**Por qué decimos "puntaje" y no "probabilidad".** Como entrenamos con `class_weight="balanced"`, el modelo da más peso a los clientes que se van y su salida queda inflada: el promedio predicho es 41,5 % cuando la tasa real es 26,5 %. Por ejemplo, de los clientes de prueba con puntaje entre 70 y 80, en realidad se fue el 47 %. El orden sí es confiable (ROC-AUC 0,839), así que el puntaje sirve para priorizar clientes, y al lado mostramos siempre la tasa real del tramo.
+
+La app solo ofrece combinaciones que existen en los datos. Si el cliente no tiene teléfono, "Varias líneas" queda bloqueado en "Sin servicio telefónico". Si no tiene internet, los seis servicios de internet quedan bloqueados en "Sin servicio de internet". Los valores por defecto del formulario son los más frecuentes del dataset.
 
 ## Estructura del proyecto
 
 ```
 telco-churn-streamlit/
-├── app.py                  # interfaz Streamlit (solo carga el modelo)
 ├── train.py                # entrenamiento reproducible
 ├── export_web.py           # exporta el modelo a web/model.json
-├── model.joblib            # pipeline entrenado + metadatos para la app
+├── model.joblib            # pipeline entrenado + metadatos
 ├── metrics.json            # métricas de la última ejecución de train.py
-├── requirements.txt        # dependencias con versiones fijas
+├── requirements.txt        # dependencias de Python con versiones fijas
 ├── requirements-dev.txt    # requirements.txt + pytest
-├── Dockerfile
+├── package.json            # pruebas de la web (npm test)
+├── Dockerfile              # imagen nginx que sirve web/
 ├── .dockerignore
 ├── data/
 │   └── telco_churn.csv
-├── tests/
-│   ├── test_app.py         # pruebas de la app con streamlit.testing
-│   ├── test_web_export.py  # web/model.json coincide con model.joblib
-│   ├── check_web.mjs       # la web da la misma probabilidad que sklearn
-│   └── web_cases.json      # 300 casos de verificación
-├── web/                    # versión web estática (Vercel)
+├── web/                    # la app (Vercel y Docker sirven esta carpeta)
 │   ├── index.html
 │   ├── styles.css
-│   ├── app.js
+│   ├── app.js              # interfaz
 │   ├── churn-model.js      # inferencia en JavaScript
-│   └── model.json          # coeficientes exportados
+│   └── model.json          # parámetros exportados del pipeline
+├── tests/
+│   ├── test_web_export.py  # web/model.json coincide con model.joblib
+│   ├── check_web.mjs       # la web da la misma probabilidad que sklearn
+│   ├── ui.test.cjs         # la interfaz responde bien a los clics
+│   └── web_cases.json      # 300 casos de verificación
 └── colab/
-    └── telco_churn_colab.ipynb   # revisión del dataset y pruebas en Colab
+    └── telco_churn_colab.ipynb   # revisión del dataset, entrenamiento y pruebas en Colab
 ```
 
 Fijamos las versiones de `requirements.txt` a propósito: `model.joblib` solo carga de forma confiable con la misma versión de scikit-learn con la que lo entrenamos (1.9.1).
@@ -135,63 +145,74 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-dev.txt
 python train.py
+python export_web.py
 ```
 
-Debe imprimir la validación cruzada, el modelo elegido, la matriz de confusión y terminar con `Modelo guardado en model.joblib`. Con `random_state=42` las métricas salen idénticas en cada ejecución.
+`train.py` debe imprimir la validación cruzada, el modelo elegido, la matriz de confusión y terminar con `Modelo guardado en model.joblib`. Con `random_state=42` las métricas salen idénticas en cada ejecución. `export_web.py` actualiza `web/model.json`; se niega a exportar si `train.py` llegara a elegir el random forest, porque la web solo reproduce la regresión logística.
 
-Para correr las pruebas (cargan la app, llenan el formulario y comparan el resultado con el pipeline):
+## Cómo ejecutar la app
+
+En local, sin instalar nada más:
 
 ```bash
-python -m pytest -q
+python -m http.server 8000 --directory web
 ```
 
-## Cómo ejecutar Streamlit
+Y abrir http://localhost:8000. Para probar sin descargar nada: https://radar-fuga-telco.vercel.app.
+
+**En Google Colab:** abrir https://colab.research.google.com/github/melo11miguel/telco-churn-streamlit/blob/main/colab/telco_churn_colab.ipynb y ejecutar todas las celdas. El notebook clona el repo, revisa el dataset, entrena, exporta, corre las pruebas y abre la app con un túnel temporal.
+
+**En Vercel** el proyecto apunta a la carpeta `web/` como directorio raíz, sin paso de construcción. Cada push a `main` la vuelve a publicar.
+
+## Pruebas
+
+Necesitamos Node.js 20 o superior para las pruebas de la web.
 
 ```bash
-streamlit run app.py
+python -m pytest -q   # web/model.json está al día con model.joblib
+npm install
+npm test              # misma probabilidad que sklearn en 300 casos + prueba de la interfaz
 ```
 
-Y abrir http://localhost:8501. La app no vuelve a entrenar: solo carga `model.joblib`.
-
-**En Google Colab:** abrir `colab/telco_churn_colab.ipynb` (en Colab: Archivo, Abrir notebook, GitHub, pegar la URL del repositorio) y ejecutar las celdas en orden. El notebook clona el repo, revisa el dataset, entrena, corre las pruebas y levanta Streamlit con un túnel temporal de localtunnel.
+`npm test` también corre contra la versión publicada: `node tests/ui.test.cjs https://radar-fuga-telco.vercel.app/`.
 
 ## Cómo construir la imagen Docker
 
-Desde la carpeta del proyecto:
+La imagen parte de `nginx:1.27-alpine` y solo copia la carpeta `web/`, porque el modelo ya va exportado en `web/model.json`. Desde la carpeta del proyecto:
 
 ```bash
-docker build -t ml-streamlit-app .
+docker build -t radar-fuga-telco .
 docker images
 ```
 
-El punto final indica que el contexto de construcción es la carpeta actual. La imagen parte de `python:3.12-slim`, instala `requirements.txt` y copia el proyecto (sin lo que excluye `.dockerignore`).
+El punto final indica que el contexto de construcción es la carpeta actual.
 
 ## Cómo ejecutar el contenedor
 
 Primera prueba interactiva (detener con Ctrl+C):
 
 ```bash
-docker run --rm -p 8501:8501 ml-streamlit-app
+docker run --rm -p 8080:80 radar-fuga-telco
 ```
 
-En segundo plano y con reinicio automático:
+Y abrir http://localhost:8080. En segundo plano y con reinicio automático:
 
 ```bash
-docker run -d --name ml-streamlit --restart unless-stopped -p 8501:8501 ml-streamlit-app
+docker run -d --name radar-fuga --restart unless-stopped -p 80:80 radar-fuga-telco
 docker ps
-docker logs ml-streamlit
+docker logs radar-fuga
 ```
 
-`-p 8501:8501` conecta el puerto 8501 de la máquina con el del contenedor. Streamlit escucha en `0.0.0.0` para aceptar conexiones externas. La imagen incluye un `HEALTHCHECK`, así que después de unos 20 segundos `docker ps` debe mostrar el estado `(healthy)`.
+`-p 80:80` conecta el puerto 80 de la máquina con el puerto 80 del contenedor, donde escucha nginx. La imagen incluye un `HEALTHCHECK`, así que a los pocos segundos `docker ps` debe mostrar el estado `(healthy)`.
 
 ## Despliegue en Google Cloud (Compute Engine)
 
 1. En Google Cloud Console, seleccionar el proyecto, abrir **Compute Engine** y habilitar la API si la consola lo pide.
 2. Crear una instancia de VM:
    - Imagen: **Ubuntu 24.04 LTS** (x86/64).
-   - Tipo de máquina: `e2-small` (2 GB de RAM) es suficiente.
+   - Tipo de máquina: `e2-micro` alcanza, porque nginx solo sirve archivos estáticos.
    - Con dirección IP externa.
-   - En **Redes**, agregar la etiqueta de red `streamlit-server`.
+   - En **Firewall**, marcar **Permitir tráfico HTTP**. Eso le pone a la VM la etiqueta `http-server` y crea la regla de firewall que abre el puerto 80.
 3. Abrir la terminal con el botón **SSH** e instalar Docker y Git:
 
    ```bash
@@ -208,22 +229,22 @@ docker logs ml-streamlit
    git clone https://github.com/melo11miguel/telco-churn-streamlit.git
    cd telco-churn-streamlit
    ls -la
-   docker build -t ml-streamlit-app .
-   docker run -d --name ml-streamlit --restart unless-stopped -p 8501:8501 ml-streamlit-app
+   docker build -t radar-fuga-telco .
+   docker run -d --name radar-fuga --restart unless-stopped -p 80:80 radar-fuga-telco
    docker ps
    ```
 
-5. Abrir el puerto 8501 en el firewall. Desde Cloud Shell:
+5. Si no marcamos **Permitir tráfico HTTP** al crear la VM, abrir el puerto desde Cloud Shell:
 
    ```bash
-   gcloud compute firewall-rules create allow-streamlit-8501 \
-     --allow=tcp:8501 --direction=INGRESS --target-tags=streamlit-server
+   gcloud compute instances add-tags NOMBRE_DE_LA_VM --tags=http-server --zone=ZONA_DE_LA_VM
+   gcloud compute firewall-rules create default-allow-http \
+     --allow=tcp:80 --direction=INGRESS --target-tags=http-server
    ```
 
-   O desde la consola: **Red de VPC, Firewall, Crear regla**, con destino la etiqueta `streamlit-server`, rango de origen `0.0.0.0/0` y TCP 8501.
-6. Abrir `http://IP_EXTERNA_DE_LA_VM:8501` en el navegador.
+6. Abrir `http://IP_EXTERNA_DE_LA_VM` en el navegador.
 
-Este acceso público es solo para el laboratorio. En producción haría falta HTTPS, autenticación y restringir los orígenes.
+Este acceso público es solo para el laboratorio. En producción haría falta HTTPS y un dominio propio (Vercel ya los da por defecto).
 
 **Al terminar, detener o eliminar la VM** para que no siga generando costos.
 
@@ -233,78 +254,54 @@ El contenedor no se actualiza solo: hay que construir una imagen nueva y crear u
 
 ```bash
 git pull
-docker stop ml-streamlit
-docker rm ml-streamlit
-docker build -t ml-streamlit-app .
-docker run -d --name ml-streamlit --restart unless-stopped -p 8501:8501 ml-streamlit-app
+docker stop radar-fuga
+docker rm radar-fuga
+docker build -t radar-fuga-telco .
+docker run -d --name radar-fuga --restart unless-stopped -p 80:80 radar-fuga-telco
 ```
 
 ### Diagnóstico rápido
 
 | Situación | Qué revisar |
 |---|---|
-| `docker build` falla | Leer el error completo; confirmar que `requirements.txt` y `model.joblib` están en la carpeta. |
-| El contenedor se detiene | `docker ps -a` y `docker logs ml-streamlit`. |
-| Funciona en la VM pero no desde fuera | La regla de firewall, la etiqueta `streamlit-server` en la VM y la IP externa. Desde la VM, `curl localhost:8501/_stcore/health` debe responder `ok`. |
+| `docker build` falla | Leer el error completo; confirmar que la carpeta `web/` está en el directorio actual. |
+| El contenedor se detiene | `docker ps -a` y `docker logs radar-fuga`. |
+| Funciona en la VM pero no desde fuera | La regla de firewall, la etiqueta `http-server` en la VM y la IP externa. Desde la VM, `curl -I localhost` debe responder `200 OK`. |
+| La página abre pero no calcula | Abrir la consola del navegador; `http://IP/model.json` debe descargar el modelo. |
 | Los cambios no aparecen | Seguir los pasos de actualización de arriba. |
-
-## Versión web en Vercel
-
-Además de la app de Streamlit (la que pide la guía, con Docker en GCP), publicamos una versión web con un diseño pensado para alguien de negocio. Streamlit no puede correr en Vercel, porque necesita un servidor Python encendido todo el tiempo. Por eso aprovechamos que el modelo es una regresión logística: su predicción es una suma ponderada que el navegador calcula directamente con los coeficientes del pipeline entrenado. No hay servidor y ningún dato que se ingrese sale del equipo de quien usa la página.
-
-La página muestra:
-
-- **Puntaje de riesgo** de 0 a 100, con nivel bajo (menos de 30), medio (de 30 a 50) o alto (50 o más, el mismo umbral de la app de Streamlit).
-- **Tasa real de fuga** de los clientes de prueba con un puntaje parecido.
-- **Qué explica el puntaje:** los cinco factores que más lo suben o lo bajan frente al cliente promedio, en puntos.
-- **Qué podría retenerlo:** cuánto bajaría el puntaje al cambiar una sola cosa (contrato, forma de pago o servicios de soporte). Son asociaciones del modelo, no efectos causales.
-- **Confiabilidad:** métricas de prueba en lenguaje sencillo y el gráfico de puntaje frente a fuga real, con su tabla.
-
-Si reentrenamos el modelo, hay que regenerar y verificar la versión web:
-
-```bash
-python train.py
-python export_web.py
-python -m pytest -q          # incluye la prueba de que web/model.json está al día
-node tests/check_web.mjs     # la web y sklearn dan la misma probabilidad
-```
-
-`export_web.py` se niega a exportar si `train.py` llegara a elegir el random forest, porque la web solo reproduce la regresión logística. Para verla en local: `python -m http.server 8000 --directory web` y abrir http://localhost:8000.
-
-En Vercel el proyecto apunta a la carpeta `web/` como directorio raíz, sin paso de construcción. Cada push a `main` la vuelve a publicar.
 
 ## Ejemplo de entrada y salida
 
-Valores obtenidos con la app y el modelo de este repositorio. Los campos que no aparecen quedan en su valor por defecto (el más frecuente del dataset).
+Los tres casos se cargan con los botones de ejemplo de la parte superior de la app. Los campos que no aparecen quedan en su valor por defecto (el más frecuente del dataset).
 
-**Caso 1: cliente nuevo de alto riesgo**
+**Caso 1: cliente nuevo de alto riesgo** (botón "Cliente nuevo, alto riesgo")
 
 | Campo en la app | Valor |
 |---|---|
-| Antigüedad (meses) | 1 |
-| Cargo mensual (USD) | 95 |
+| Antigüedad | 1 mes |
+| Cargo mensual | US$ 95 |
 | Tipo de contrato | Mes a mes |
 | Servicio de internet | Fibra óptica |
 | Método de pago | Cheque electrónico |
 | Seguridad en línea / Soporte técnico | No / No |
 | Factura electrónica | Sí |
 
-Salida esperada: **Clase predicha: Se va. Probabilidad de fuga: 79,2 %.**
+Salida esperada: **puntaje 79/100, riesgo alto, "Se prevé que se vaya"**. De los 149 clientes de prueba con puntaje entre 70 y 80, el 47 % realmente canceló. Lo que más lo retiene: ofrecer un contrato de dos años, que baja el puntaje a 48.
 
-**Caso 2: cliente antiguo de bajo riesgo**
+**Caso 2: cliente fiel de bajo riesgo** (botón "Cliente fiel, bajo riesgo")
 
 | Campo en la app | Valor |
 |---|---|
-| Antigüedad (meses) | 70 |
-| Cargo mensual (USD) | 25 |
+| Antigüedad | 70 meses |
+| Cargo mensual | US$ 25 |
 | Tipo de contrato | Dos años |
-| Servicio de internet | No (los seis servicios de internet quedan en "Sin servicio de internet") |
-| Método de pago | Transferencia bancaria (automática) |
+| Servicio de internet | Sin internet (los seis servicios de internet quedan bloqueados) |
+| Método de pago | Transferencia bancaria automática |
 | Factura electrónica | No |
 
-Salida esperada: **Clase predicha: Se queda. Probabilidad de fuga: 1,3 %.**
+Salida esperada: **puntaje 1/100, riesgo bajo, "Se prevé que se quede"**. De los 311 clientes de prueba con puntaje entre 0 y 10, el 1 % canceló.
 
-**Caso 3: formulario sin tocar** (antigüedad 29, cargo 70,35, mes a mes, fibra óptica, cheque electrónico). Salida esperada: **Se va, 72,1 %.** Tiene sentido: el perfil más frecuente del dataset combina justo los factores de mayor riesgo.
+**Caso 3: cliente típico** (botón "Cliente típico", o el formulario sin tocar: antigüedad 29 meses, cargo US$ 70,35, mes a mes, fibra óptica, cheque electrónico). Salida esperada: **puntaje 72/100, riesgo alto.** Tiene sentido: el perfil más frecuente del dataset combina justo los factores de mayor riesgo.
 
 ## Prueba cruzada
 
@@ -314,7 +311,7 @@ Otra pareja debe poder reproducir el proyecto siguiendo solo este README, sin in
 |---|---|---|
 | Clonar el repositorio | | |
 | `docker build` | | |
-| `docker run` | | |
+| `docker run` y abrir la app | | |
 | Probar el caso 1 del ejemplo | | |
 | Instrucciones faltantes o errores | | |
 

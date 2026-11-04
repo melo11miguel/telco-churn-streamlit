@@ -51,8 +51,8 @@
     return sigmoid(logit(model, input));
   }
 
-  // Mismas reglas que app.py: sin teléfono o sin internet, los servicios
-  // dependientes toman el valor que siempre tienen en los datos.
+  // Sin teléfono o sin internet, los servicios dependientes toman el valor
+  // que siempre tienen en los datos, para no pedir combinaciones imposibles.
   const DEPENDENCIES = {
     MultipleLines: ["PhoneService", "No phone service"],
     OnlineSecurity: ["InternetService", "No internet service"],
@@ -80,7 +80,7 @@
     return values;
   }
 
-  // Los mismos ejemplos que tests/test_app.py y el README.
+  // Los mismos ejemplos del README.
   const PRESETS = {
     tipico: {},
     alto: {

@@ -29,13 +29,13 @@ if (worst > TOLERANCE) {
   process.exit(1);
 }
 
-// Los ejemplos deben dar lo mismo que la app de Streamlit (ver README).
+// Los ejemplos deben dar lo documentado en el README.
 const expected = { tipico: 72.1, alto: 79.2, bajo: 1.3 };
 for (const [name, pct] of Object.entries(expected)) {
   const got = Math.round(predict(model, preset(model, name)) * 1000) / 10;
-  console.log(`ejemplo ${name}: ${got} % (Streamlit: ${pct} %)`);
+  console.log(`ejemplo ${name}: ${got} % (README: ${pct} %)`);
   if (got !== pct) {
-    console.error(`FALLA: el ejemplo ${name} no coincide con Streamlit`);
+    console.error(`FALLA: el ejemplo ${name} no coincide con el README`);
     process.exit(1);
   }
 }
