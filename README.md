@@ -2,7 +2,7 @@
 
 Construimos una solución completa de Machine Learning que estima el riesgo de que un cliente de una compañía de telecomunicaciones cancele el servicio (churn). El proyecto cubre todo el ciclo: datos, entrenamiento reproducible con `train.py`, una app web que usa el modelo entrenado, imagen Docker y despliegue.
 
-Con autorización del docente, reemplazamos la interfaz de Streamlit que propone la guía por una app web publicada en Vercel: **https://radar-fuga-telco.vercel.app**
+Con autorización del docente Wilmer Pineda (el 4 de noviembre), reemplazamos la interfaz de Streamlit que propone la guía por una app web publicada en Vercel: **https://radar-fuga-telco.vercel.app**
 
 **Objetivo de negocio:** identificar a tiempo a los clientes con alto riesgo de irse para priorizarlos en una campaña de retención.
 
