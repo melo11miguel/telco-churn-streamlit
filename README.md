@@ -309,10 +309,10 @@ Otra pareja debe poder reproducir el proyecto siguiendo solo este README, sin in
 
 | Paso | Resultado | Observaciones |
 |---|---|---|
-| Clonar el repositorio | | |
-| `docker build` | | |
-| `docker run` y abrir la app | | |
-| Probar el caso 1 del ejemplo | | |
-| Instrucciones faltantes o errores | | |
+| Clonar el repositorio | Sí | En GitHub Codespaces, con `git clone https://github.com/melo11miguel/telco-churn-streamlit.git` |
+| `docker build` | Sí | `docker build -t radar-fuga-telco .` |
+| `docker run` y abrir la app | Sí | `docker run --rm -p 8080:80 radar-fuga-telco`. La app abrió en el puerto 8080. |
+| Probar el caso 1 del ejemplo | Sí | 79/100, riesgo alto, "Se prevé que se vaya", 47 % de fuga real entre los 149 clientes de prueba con puntaje de 70 a 80. El contrato de dos años bajó el puntaje a 48. Coincide con el README. |
+| Instrucciones faltantes o errores | Ninguno | |
 
-Pareja que hizo la prueba: ____________ Fecha: ____________
+Pareja que hizo la prueba: Jorge Zainea y Daniel Gamba. Fecha: 10 de noviembre de 2026.
