@@ -208,12 +208,13 @@ docker logs radar-fuga
 ## Despliegue en Google Cloud (Compute Engine)
 
 1. En Google Cloud Console, seleccionar el proyecto, abrir **Compute Engine** y habilitar la API si la consola lo pide.
-2. Crear una instancia de VM:
+**Limitación: este despliegue no se realizó.** No pudimos habilitar la facturación de Google Cloud, requisito para crear la VM en Compute Engine. Los pasos de abajo describen cómo hacerlo con una cuenta habilitada. Como alternativa, la imagen Docker se construyó y ejecutó en GitHub Codespaces durante la prueba cruzada, y la app está publicada en https://radar-fuga-telco.vercel.app.
+3. Crear una instancia de VM:
    - Imagen: **Ubuntu 24.04 LTS** (x86/64).
    - Tipo de máquina: `e2-micro` alcanza, porque nginx solo sirve archivos estáticos.
    - Con dirección IP externa.
    - En **Firewall**, marcar **Permitir tráfico HTTP**. Eso le pone a la VM la etiqueta `http-server` y crea la regla de firewall que abre el puerto 80.
-3. Abrir la terminal con el botón **SSH** e instalar Docker y Git:
+4. Abrir la terminal con el botón **SSH** e instalar Docker y Git:
 
    ```bash
    sudo apt update
@@ -223,7 +224,7 @@ docker logs radar-fuga
    ```
 
    Cerrar la ventana SSH y volver a entrar para usar Docker sin `sudo`.
-4. Clonar, construir y ejecutar:
+5. Clonar, construir y ejecutar:
 
    ```bash
    git clone https://github.com/melo11miguel/telco-churn-streamlit.git
@@ -234,7 +235,7 @@ docker logs radar-fuga
    docker ps
    ```
 
-5. Si no marcamos **Permitir tráfico HTTP** al crear la VM, abrir el puerto desde Cloud Shell:
+6. Si no marcamos **Permitir tráfico HTTP** al crear la VM, abrir el puerto desde Cloud Shell:
 
    ```bash
    gcloud compute instances add-tags NOMBRE_DE_LA_VM --tags=http-server --zone=ZONA_DE_LA_VM
@@ -242,7 +243,7 @@ docker logs radar-fuga
      --allow=tcp:80 --direction=INGRESS --target-tags=http-server
    ```
 
-6. Abrir `http://IP_EXTERNA_DE_LA_VM` en el navegador.
+7. Abrir `http://IP_EXTERNA_DE_LA_VM` en el navegador.
 
 Este acceso público es solo para el laboratorio. En producción haría falta HTTPS y un dominio propio (Vercel ya los da por defecto).
 
